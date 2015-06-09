@@ -35,14 +35,31 @@ public class MinionManager : MonoBehaviour {
 
     private void LoadMinionDesign(string data)
     {
-        
-    }
+        JSONNode node = JSON.Parse(data);
+        JSONArray minionDesignArr = node["minion"].AsArray;
+        for (int i = 0; i < minionDesignArr.Count; ++i)
+        {
+            MinionLevelDesign minionLevelDesign = new MinionLevelDesign();
+            minionLevelDesign.id = i;
+            minionLevelDesign.minionWaves = new List<MinionWaveDesign>();
+            JSONArray waveDesignArr = minionDesignArr[i]["waves"].AsArray;
+            for (int j = 0; j < waveDesignArr.Count; ++j)
+            {
+                MinionWaveDesign minionWaveDesign = new MinionWaveDesign();
+                minionWaveDesign.wave = waveDesignArr[j]["wave"].AsInt;
+                minionWaveDesign.minionMap = new List<MinionMap>();
+                JSONArray minionListArr = waveDesignArr[j]["minion_list"].AsArray;
+                for (int k = 0; k < minionListArr.Count; ++k)
+                {
+                    MinionMap minionMap = new MinionMap();
+                    minionMap.id = minionListArr[k]["minion_id"].AsInt;
+                    minionMap.count = minionListArr[k]["minion_count"].AsInt;
+                    minionWaveDesign.minionMap.Add(minionMap);
+                }
+                minionLevelDesign.minionWaves.Add(minionWaveDesign);
+            }
+        }
 
-    private MinionProperties SpawnMinion(int id)
-    {
-        MinionProperties minion = (MinionProperties)Instantiate(minionPrefabs[id]);
-        
-        return minion;
     }
 
     private void UpdateMinions()
@@ -51,21 +68,25 @@ public class MinionManager : MonoBehaviour {
         {
             tick_ = 0;
             int wave = GameManager.instance.wave;
-            if (currentMinionCount_ < levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].count)
+            if (currentMinionId_ < levelDesign_[0].minionWaves[wave].minionMap.Count)
             {
-                int minionId = levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].id;
-                GameObject minionGO = (GameObject)Instantiate(minionPrefabs[minionId].gameObject);
-                Vector3 pos = levelLoader.GetPathPosition(0);
-                minionGO.transform.position = pos;
-                minions_.Add(minionGO);
-                MinionProperties minionProp = minionGO.GetComponent<MinionProperties>();
-                minionProp.pathIndex = 0;
-            }
-            else
-            {
-                currentMinionCount_ = 0;
-                currentMinionId_++;
-                //skip this frame
+                if (currentMinionCount_ < levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].count)
+                {
+                    int minionId = levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].id;
+                    GameObject minionGO = (GameObject)Instantiate(minionPrefabs[minionId].gameObject);
+                    Vector3 pos = levelLoader.GetPathPosition(0);
+                    minionGO.transform.position = pos;
+                    minions_.Add(minionGO);
+                    MinionProperties minionProp = minionGO.GetComponent<MinionProperties>();
+                    minionProp.pathIndex = 0;
+                    currentMinionCount_++;
+                }
+                else
+                {
+                    currentMinionCount_ = 0;
+                    currentMinionId_++;
+                    //skip this frame
+                }
             }
         }
         tick_ += Time.deltaTime;
@@ -103,6 +124,105 @@ public class MinionManager : MonoBehaviour {
         }
     }
 
+    public GameObject GetMinionInsideTowerRadius(Vector3 position, float radius)
+    {
+        for (int i = 0; i < minions_.Count; ++i)
+        {
+            if (Vector3.Distance(position, minions_[i].transform.position) < radius)
+            {
+                return minions_[i];
+            }
+        }
+
+        return null;
+    }
+
+    public bool CheckMinionCollisionWithBullet(Vector3 bulletPos, DamageType damageType, float damage)
+    {
+        for (int i = 0; i < minions_.Count; ++i)
+        {
+            BoxCollider2D collider = minions_[i].GetComponent<BoxCollider2D>();
+            if (collider.bounds.Contains(bulletPos))
+            {
+                MinionProperties minionProp = minions_[i].GetComponent<MinionProperties>();
+                float percentage = 100;
+                switch (minionProp.armorType)
+                {
+                    case ArmorType.UNARMED:
+                        {
+                            switch (damageType)
+                            {
+                                case DamageType.NORMAL: percentage = 100; break;
+                                case DamageType.PIERCE: percentage = 200; break;
+                                case DamageType.SIEGE: percentage = 150; break;
+                                case DamageType.MAGIC: percentage = 100; break;
+                                case DamageType.CHAOS: percentage = 100; break;
+                            }
+                        }
+                        break;
+                    case ArmorType.LIGHT:
+                        {
+                            switch (damageType)
+                            {
+                                case DamageType.NORMAL: percentage = 100; break;
+                                case DamageType.PIERCE: percentage = 150; break;
+                                case DamageType.SIEGE: percentage = 100; break;
+                                case DamageType.MAGIC: percentage = 125; break;
+                                case DamageType.CHAOS: percentage = 100; break;
+                            }
+                        }
+                        break;
+                    case ArmorType.MEDIUM:
+                        {
+                            switch (damageType)
+                            {
+                                case DamageType.NORMAL: percentage = 150; break;
+                                case DamageType.PIERCE: percentage = 75; break;
+                                case DamageType.SIEGE: percentage = 50; break;
+                                case DamageType.MAGIC: percentage = 75; break;
+                                case DamageType.CHAOS: percentage = 100; break;
+                            }
+                        }
+                        break;
+                    case ArmorType.HEAVY:
+                        {
+                            switch (damageType)
+                            {
+                                case DamageType.NORMAL: percentage = 100; break;
+                                case DamageType.PIERCE: percentage = 100; break;
+                                case DamageType.SIEGE: percentage = 100; break;
+                                case DamageType.MAGIC: percentage = 200; break;
+                                case DamageType.CHAOS: percentage = 100; break;
+                            }
+                        }
+                        break;
+                    case ArmorType.FORTIFIED:
+                        {
+                            switch (damageType)
+                            {
+                                case DamageType.NORMAL: percentage = 70; break;
+                                case DamageType.PIERCE: percentage = 35; break;
+                                case DamageType.SIEGE: percentage = 150; break;
+                                case DamageType.MAGIC: percentage = 35; break;
+                                case DamageType.CHAOS: percentage = 100; break;
+                            }
+                        }
+                        break;
+                }
+                minionProp.hp -= (damage * (percentage/100)) - minionProp.armor;
+                if (minionProp.hp <= 0)
+                {
+                    minionProp.hp = 0;
+                    Destroy(minions_[i]);
+                    minions_.RemoveAt(i);
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Use this for initialization
     void Start()
     {
@@ -115,5 +235,6 @@ public class MinionManager : MonoBehaviour {
         {
             return;
         }
+        UpdateMinions();
 	}
 }

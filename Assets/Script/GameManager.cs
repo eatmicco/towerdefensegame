@@ -27,4 +27,12 @@ public class GameManager : MonoBehaviour {
 	void Update () {
 	
 	}
+
+    void OnGUI()
+    {
+        if (GUILayout.Button("Start"))
+        {
+            waveStarted = true;
+        }
+    }
 }

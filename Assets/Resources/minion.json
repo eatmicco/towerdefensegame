@@ -1,0 +1,34 @@
+{
+	"minion":[
+		{
+			"waves":[
+				{
+					"wave":"1",
+					"minion_list":[
+						{
+							"minion_id":"0",
+							"minion_count":"20"
+						},
+						{
+							"minion_id":"1",
+							"minion_count":"20"
+						}
+					]
+				},
+				{
+					"wave":"2",
+					"minion_list":[
+						{
+							"minion_id":"0",
+							"minion_count":"40"
+						},
+						{
+							"minion_id":"1",
+							"minion_count":"40"
+						}
+					]
+				}
+			]
+		}
+	]
+}
