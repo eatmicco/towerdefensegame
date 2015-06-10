@@ -29,14 +29,6 @@ public class BulletManager : MonoBehaviour {
             Transform bulletTransform = bullets_[i].transform;
             bulletTransform.Translate(Vector3.up * (bulletSpeed * Time.deltaTime), Space.Self);
 
-            //temporary check if bullet is out of screen
-            if ((bulletTransform.position.x > 4f || bulletTransform.position.x < -4f) ||
-                (bulletTransform.position.y > 5f || bulletTransform.position.y < -4f))
-            {
-                Destroy(bullets_[i]);
-                bullets_.RemoveAt(i);
-            }
-
             BulletProperties bulletProp = bullets_[i].GetComponent<BulletProperties>();
 
             if (minionManager.CheckMinionCollisionWithBullet(bulletTransform.position, bulletProp.damageType,
@@ -45,6 +37,15 @@ public class BulletManager : MonoBehaviour {
                 Destroy(bullets_[i]);
                 bullets_.RemoveAt(i);
             }
+
+            //temporary check if bullet is out of screen
+            if ((bulletTransform.position.x > 4f || bulletTransform.position.x < -4f) ||
+                (bulletTransform.position.y > 5f || bulletTransform.position.y < -4f))
+            {
+                Destroy(bullets_[i]);
+                bullets_.RemoveAt(i);
+            }
+
         }
     }
 

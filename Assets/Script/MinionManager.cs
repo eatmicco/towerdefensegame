@@ -27,6 +27,7 @@ public class MinionManager : MonoBehaviour {
     public MinionProperties[] minionPrefabs;
     public float timeToSpawn;
     public float minionThresholdPath;
+    public TextAsset minionDesignTA;
     private List<MinionLevelDesign> levelDesign_ = new List<MinionLevelDesign>();
     private List<GameObject> minions_ = new List<GameObject>();
     private float tick_;
@@ -58,6 +59,7 @@ public class MinionManager : MonoBehaviour {
                 }
                 minionLevelDesign.minionWaves.Add(minionWaveDesign);
             }
+            levelDesign_.Add(minionLevelDesign);
         }
 
     }
@@ -226,7 +228,7 @@ public class MinionManager : MonoBehaviour {
     // Use this for initialization
     void Start()
     {
-	
+        LoadMinionDesign(minionDesignTA.text);
 	}
 	
 	// Update is called once per frame

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class TowerManager : MonoBehaviour {
 
-
+    public LevelLoader levelLoader;
     public MinionManager minionManager;
     public BulletManager bulletManager;
     public GameObject[] towerPrefabs;
@@ -12,9 +12,20 @@ public class TowerManager : MonoBehaviour {
 
     public void AddTower(int id, Vector3 position)
     {
-        GameObject tower = (GameObject)Instantiate(towers_[id]);
-        tower.transform.position = position;
-        towers_.Add(tower);
+        LevelLoader.TilePoint tile = levelLoader.GetTileFromPosition(position);
+        if (tile.x != -1 && tile.y != -1)
+        {
+            if (levelLoader.GetTilePlaceable(tile.x, tile.y) == 1)
+            {
+                GameObject tower = (GameObject)Instantiate(towerPrefabs[id]);
+                Vector3 snapPos = levelLoader.GetTilePosition(tile.x, tile.y);
+                tower.transform.position = snapPos;
+                TowerProperties towerProp = tower.GetComponent<TowerProperties>();
+                towerProp.tickToShoot = 0;
+                towerProp.lockedMinion = null;
+                towers_.Add(tower);
+            }
+        }
     }
 
     private void UpdateTowers()
@@ -50,6 +61,7 @@ public class TowerManager : MonoBehaviour {
                 if (towerProp.tickToShoot >= towerProp.timeToShoot)
                 {
                     bulletManager.Shoot(towers_[i].transform.position, towers_[i].transform.rotation, towerProp.damageType, towerProp.damage);
+                    towerProp.tickToShoot = 0;
                 }
                 towerProp.tickToShoot += Time.deltaTime;
             }
