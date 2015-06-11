@@ -18,6 +18,7 @@ public class LevelLoader : MonoBehaviour {
         public int tileY;
         public List<int> map;
         public List<int> placeable;
+        public List<int> walkable;
         public List<TilePoint> path;
     }
 
@@ -53,6 +54,12 @@ public class LevelLoader : MonoBehaviour {
             for (int j = 0; j < placeableArr.Count; ++j)
             {
                 level.placeable.Add(placeableArr[j].AsInt);
+            }
+            level.walkable = new List<int>();
+            JSONArray walkableArr = levelArr[i]["walkable"].AsArray;
+            for (int j = 0; j < walkableArr.Count; ++j)
+            {
+                level.walkable.Add(walkableArr[j].AsInt);
             }
             level.path = new List<TilePoint>();
             JSONArray pathArr = levelArr[i]["path"].AsArray;
@@ -143,6 +150,12 @@ public class LevelLoader : MonoBehaviour {
     {
         int idx = x + (y * tileY_);
         return levelDesignList_[levelId].placeable[idx];
+    }
+
+    public int GetTileWalkable(int x, int y)
+    {
+        int idx = x + (y * tileY_);
+        return levelDesignList_[levelId].walkable[idx];
     }
 
     public Vector3 GetPathPosition(int idx)
