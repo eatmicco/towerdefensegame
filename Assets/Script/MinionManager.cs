@@ -24,6 +24,7 @@ public class MinionManager : MonoBehaviour {
     }
 
     public LevelLoader levelLoader;
+    public AStarPathfinder pathFinder;
     public MinionProperties[] minionPrefabs;
     public float timeToSpawn;
     public float minionThresholdPath;
@@ -80,7 +81,10 @@ public class MinionManager : MonoBehaviour {
                     minionGO.transform.position = pos;
                     minions_.Add(minionGO);
                     MinionProperties minionProp = minionGO.GetComponent<MinionProperties>();
-                    minionProp.pathIndex = 0;
+                    minionProp.currentTile = levelLoader.GetPathPoint(0);
+                    minionProp.pathIndex = 1;
+                    minionProp.walkPath = pathFinder.FindPath(minionProp.currentTile, levelLoader.GetPathPoint(minionProp.pathIndex));
+                    minionProp.walkPathIndex = 1;
                     currentMinionCount_++;
                 }
                 else
@@ -93,23 +97,39 @@ public class MinionManager : MonoBehaviour {
         }
         tick_ += Time.deltaTime;
 
+        
         for (int i = 0; i < minions_.Count; ++i)
         {
+
             MinionProperties minionProp = minions_[i].GetComponent<MinionProperties>();
 
             if (minionProp.pathIndex == levelLoader.GetPathCount())
                 continue;
 
             Vector3 pos = minions_[i].transform.position;
-            Vector3 dest = levelLoader.GetPathPosition(minionProp.pathIndex);
+            Vector3 dest = levelLoader.GetTilePosition(minionProp.walkPath[minionProp.walkPathIndex]);
             Vector3 diff = dest - pos;
             if (diff.magnitude < minionThresholdPath)
             {
-                minionProp.pathIndex += 1;
-                if (minionProp.pathIndex == levelLoader.GetPathCount())
-                    continue;
+                minionProp.walkPathIndex += 1;
+                if (minionProp.walkPathIndex == minionProp.walkPath.Count)
+                {
+                    minionProp.walkPathIndex = 0;
 
-                dest = levelLoader.GetPathPosition(minionProp.pathIndex);
+                    minionProp.pathIndex += 1;
+                    if (minionProp.pathIndex == levelLoader.GetPathCount())
+                        continue;
+
+                    minionProp.walkPath = pathFinder.FindPath(minionProp.currentTile, levelLoader.GetPathPoint(minionProp.pathIndex));
+                    if (minionProp.walkPath.Count <= 0)
+                        continue;
+                }
+                else
+                {
+                    minionProp.currentTile = minionProp.walkPath[minionProp.walkPathIndex];
+                }
+
+                dest = levelLoader.GetTilePosition(minionProp.walkPath[minionProp.walkPathIndex]);
                 diff = dest - pos;
 
                 //rotate to target
@@ -124,6 +144,7 @@ public class MinionManager : MonoBehaviour {
             diff.Normalize();
             minions_[i].transform.Translate(diff * (minionProp.speed * Time.deltaTime), Space.World);
         }
+        
     }
 
     public GameObject GetMinionInsideTowerRadius(Vector3 position, float radius)

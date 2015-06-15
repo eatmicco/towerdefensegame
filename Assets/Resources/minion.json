@@ -10,7 +10,7 @@
 							"minion_count":"20"
 						},
 						{
-							"minion_id":"1",
+							"minion_id":"0",
 							"minion_count":"20"
 						}
 					]
@@ -23,7 +23,7 @@
 							"minion_count":"40"
 						},
 						{
-							"minion_id":"1",
+							"minion_id":"0",
 							"minion_count":"40"
 						}
 					]

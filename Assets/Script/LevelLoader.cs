@@ -26,9 +26,12 @@ public class LevelLoader : MonoBehaviour {
     public TextAsset levelDesignTA;
     public int levelId;
     public GameObject[] tileSprites;
+    public AStarPathfinder pathFinder;
+    public GameObject pathSprite;
     private List<LevelDesign> levelDesignList_ = new List<LevelDesign>();
     private List<Vector3> positionList_ = new List<Vector3>();
     private List<GameObject> tileSpriteList_ = new List<GameObject>();
+    private List<GameObject> walkingPath_ = new List<GameObject>();
     private int tileX_;
     private int tileY_;
 
@@ -116,6 +119,23 @@ public class LevelLoader : MonoBehaviour {
             }
             posY -= tileSize;
         }
+
+        for (int i = 0; i < GetPathCount(); ++i)
+        {
+            GameObject pathTileGO = Instantiate(pathSprite) as GameObject;
+            Vector3 pos = GetPathPosition(i);
+            pos.z = -1;
+            pathTileGO.transform.position = pos;
+        }
+    }
+
+    public int GetTileX() { return tileX_; }
+
+    public int GetTileY() { return tileY_; }
+
+    public Vector3 GetTilePosition(TilePoint tilePoint)
+    {
+        return GetTilePosition(tilePoint.x, tilePoint.y);
     }
 
     public Vector3 GetTilePosition(int x, int y)
@@ -153,9 +173,14 @@ public class LevelLoader : MonoBehaviour {
     }
 
     public int GetTileWalkable(int x, int y)
-    {
+    {        
         int idx = x + (y * tileY_);
         return levelDesignList_[levelId].walkable[idx];
+    }
+
+    public TilePoint GetPathPoint(int idx)
+    {
+        return levelDesignList_[levelId].path[idx];
     }
 
     public Vector3 GetPathPosition(int idx)
@@ -167,6 +192,32 @@ public class LevelLoader : MonoBehaviour {
     public int GetPathCount()
     {
         return levelDesignList_[levelId].path.Count;
+    }
+
+    public void DrawWalkingPath()
+    {
+        for (int i = 0; i < walkingPath_.Count; ++i)
+        {
+            Destroy(walkingPath_[i]);
+        }
+        walkingPath_.Clear();
+
+        for (int i = 0; i < GetPathCount()-1; ++i)
+        {
+            TilePoint from = GetPathPoint(i);
+            TilePoint to = GetPathPoint(i + 1);
+            List<TilePoint> path = pathFinder.FindPath(from, to);
+            for (int j = 0; j < path.Count; ++j)
+            {
+                GameObject pathTileGO = Instantiate(pathSprite) as GameObject;
+                GameObject child = pathTileGO.transform.GetChild(0).gameObject;
+                child.GetComponent<TextMesh>().text = j.ToString();
+                Vector3 pos = GetTilePosition(path[j]);
+                pos.z = -1;
+                pathTileGO.transform.position = pos;
+                walkingPath_.Add(pathTileGO);
+            }
+        }
     }
 
     // Use this for initialization

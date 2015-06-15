@@ -5,6 +5,7 @@ public class GameManager : MonoBehaviour {
 
     public int wave = 0;
     public bool waveStarted = false;
+    public LevelLoader levelLoader;
 
     public static GameManager instance;
 
@@ -33,6 +34,10 @@ public class GameManager : MonoBehaviour {
         if (GUILayout.Button("Start"))
         {
             waveStarted = true;
+        }
+        if (GUILayout.Button("Path"))
+        {
+            levelLoader.DrawWalkingPath();
         }
     }
 }

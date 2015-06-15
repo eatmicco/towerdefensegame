@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public enum ArmorType
 {
@@ -15,5 +16,8 @@ public class MinionProperties : MonoBehaviour {
     public ArmorType armorType;
     public float armor;
     public float speed;
+    public List<LevelLoader.TilePoint> walkPath;
+    public int walkPathIndex;
     public int pathIndex;
+    public LevelLoader.TilePoint currentTile;
 }
