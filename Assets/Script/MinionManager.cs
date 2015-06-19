@@ -29,6 +29,10 @@ public class MinionManager : MonoBehaviour {
     public float timeToSpawn;
     public float minionThresholdPath;
     public TextAsset minionDesignTA;
+    public float maxVelocity;
+    public float maxAvoidForce;
+    public List<Transform> obstacles;
+    public float obstacleRadius;
     private List<MinionLevelDesign> levelDesign_ = new List<MinionLevelDesign>();
     private List<GameObject> minions_ = new List<GameObject>();
     private float tick_;
@@ -62,7 +66,6 @@ public class MinionManager : MonoBehaviour {
             }
             levelDesign_.Add(minionLevelDesign);
         }
-
     }
 
     private void UpdateMinions()
@@ -128,23 +131,96 @@ public class MinionManager : MonoBehaviour {
                 {
                     minionProp.currentTile = minionProp.walkPath[minionProp.walkPathIndex];
                 }
-
-                dest = levelLoader.GetTilePosition(minionProp.walkPath[minionProp.walkPathIndex]);
-                diff = dest - pos;
-
-                //rotate to target
-                float dx = dest.x - pos.x;
-                float dy = dest.y - pos.y;
-                float angle = Mathf.Atan2(dy, dx) * (180 / Mathf.PI);
-                Debug.Log(angle);
-
-                minions_[i].transform.rotation = Quaternion.Euler(0, 0, angle - 90);
             }
 
-            diff.Normalize();
-            minions_[i].transform.Translate(diff * (minionProp.speed * Time.deltaTime), Space.World);
+            Vector3 moveVector;
+            Quaternion rotation;
+            Seek(pos, dest, minionThresholdPath, minionProp.speed, minionProp.rotationSpeed, 
+                minions_[i].transform.rotation, out moveVector, out rotation);
+
+            Debug.Log(i + " rotation : " + rotation);
+
+            minions_[i].transform.rotation = rotation;
+            minions_[i].transform.position += moveVector;
         }
-        
+    }
+
+    private Vector3 Truncate(Vector3 v, float max)
+    {
+        float i = v.magnitude != 0 ? max / v.magnitude : 0;
+        if (i < 1)
+        {
+            v *= i;
+        }
+
+        return v;
+    }
+
+    private Transform FindMostThreateningObstacle(Vector3 ahead, Vector3 ahead2)
+    {
+        Transform mostThreatening = null;
+
+        for (int i = 0; i < obstacles.Count; ++i)
+        {
+            bool collision = Vector3.Distance(obstacles[i].position, ahead) <= obstacleRadius ||
+                Vector3.Distance(obstacles[i].position, ahead2) <= obstacleRadius;
+
+            if (collision && (mostThreatening == null || Vector3.Distance(transform.position, obstacles[i].position) < Vector3.Distance(transform.position, mostThreatening.position)))
+            {
+                mostThreatening = obstacles[i];
+            }
+        }
+
+        return mostThreatening;
+    }
+
+    private Vector3 CollisionAvoidance(Vector3 position, Vector3 moveVector)
+    {
+        float dynamic_length = moveVector.magnitude / maxVelocity;
+        Vector3 ahead = position + moveVector.normalized * dynamic_length;
+        Vector3 ahead2 = ahead * 0.5f;
+
+        Transform mostThreatening = FindMostThreateningObstacle(ahead, ahead2);
+        Vector3 avoidance = new Vector3(0, 0, 0);
+
+        if (mostThreatening != null)
+        {
+            avoidance.x = ahead.x - mostThreatening.position.x;
+            avoidance.y = ahead.y - mostThreatening.position.y;
+
+            avoidance.Normalize();
+            avoidance *= maxAvoidForce;
+            Debug.Log(avoidance);
+        }
+        else
+        {
+            avoidance *= 0;//nullify the avoidance force
+        }
+
+        return avoidance;
+    }
+
+    private void Seek(Vector3 position, Vector3 target, float minDistance, float moveSpeed, float rotationSpeed, Quaternion oldRotation,
+        out Vector3 moveVector, out Quaternion rotation)
+    {
+        Vector3 direction = target - position;
+
+        moveVector = direction;
+
+        if (direction.magnitude > minDistance)
+        {
+            moveVector = direction.normalized * moveSpeed * Time.deltaTime;
+
+            Truncate(moveVector, maxVelocity);
+
+            Vector3 avoidance = CollisionAvoidance(position, moveVector);
+
+            moveVector = (moveVector.normalized + avoidance) * moveSpeed * Time.deltaTime;
+        }
+
+        float angle = Mathf.Atan2(moveVector.y, moveVector.x) * (180 / Mathf.PI);
+
+        rotation = Quaternion.Slerp(oldRotation, Quaternion.Euler(0, 0, angle - 90), rotationSpeed * Time.deltaTime);
     }
 
     public GameObject GetMinionInsideTowerRadius(Vector3 position, float radius)

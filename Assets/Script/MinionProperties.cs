@@ -16,6 +16,7 @@ public class MinionProperties : MonoBehaviour {
     public ArmorType armorType;
     public float armor;
     public float speed;
+    public float rotationSpeed;
     public List<LevelLoader.TilePoint> walkPath;
     public int walkPathIndex;
     public int pathIndex;
