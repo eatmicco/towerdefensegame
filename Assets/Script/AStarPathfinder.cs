@@ -44,7 +44,6 @@ public class AStarPathfinder : MonoBehaviour {
         closedSet_.Add(tileScore);
         resultPath.Add(from);
 
-        Debug.Log("from (" + from.x + ", " + from.y + ") and to (" + to.x + ", " + to.y + ")");
         bool arrive = false;
         while (current != to)
         //for (int k = 0; k < 20; ++k)
@@ -84,7 +83,6 @@ public class AStarPathfinder : MonoBehaviour {
                         tileScore.H = H;
                         tileScore.F = F;
                         openSet_.Add(tileScore);
-                        Debug.Log("F : " + F + "; G : " + G + "; H : " + H);
                     }
                 }
             }
@@ -145,11 +143,6 @@ public class AStarPathfinder : MonoBehaviour {
             if (arrive) break;
         }
 
-        Debug.Log("Path Count : " + resultPath.Count);
-        for (int i = 0; i < resultPath.Count; ++i)
-        {
-            Debug.Log("Point " + resultPath[i].x + ", " + resultPath[i].y);
-        }
         return resultPath;
     }
 }

@@ -22,6 +22,7 @@ public class LevelLoader : MonoBehaviour {
         public List<TilePoint> path;
     }
 
+    public MinionManager minionManager;
     public int pixelsPerUnit;
     public TextAsset levelDesignTA;
     public int levelId;
@@ -114,6 +115,12 @@ public class LevelLoader : MonoBehaviour {
                     spriteGO.transform.position = new Vector3(posX, posY, 0);
                     tileSpriteList_.Add(spriteGO);
                     positionList_.Add(spriteGO.transform.localPosition);
+
+                    if (design.walkable[idx] == 0)
+                    {
+                        //add it to obstacle in MinionManager
+                        minionManager.obstacles.Add(spriteGO.transform);
+                    }
                 }
                 posX += tileSize;
             }

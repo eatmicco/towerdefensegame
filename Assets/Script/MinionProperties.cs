@@ -21,4 +21,5 @@ public class MinionProperties : MonoBehaviour {
     public int walkPathIndex;
     public int pathIndex;
     public LevelLoader.TilePoint currentTile;
+    public Vector3 ahead;
 }

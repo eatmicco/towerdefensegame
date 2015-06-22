@@ -31,8 +31,9 @@ public class MinionManager : MonoBehaviour {
     public TextAsset minionDesignTA;
     public float maxVelocity;
     public float maxAvoidForce;
-    public List<Transform> obstacles;
+    public List<Transform> obstacles = new List<Transform>();
     public float obstacleRadius;
+    public bool usePath = true;
     private List<MinionLevelDesign> levelDesign_ = new List<MinionLevelDesign>();
     private List<GameObject> minions_ = new List<GameObject>();
     private float tick_;
@@ -68,39 +69,40 @@ public class MinionManager : MonoBehaviour {
         }
     }
 
-    private void UpdateMinions()
+    private void UpdateMinionWithUndefinedPaths()
     {
-        if (tick_ > timeToSpawn)
+        for (int i = 0; i < minions_.Count; ++i)
         {
-            tick_ = 0;
-            int wave = GameManager.instance.wave;
-            if (currentMinionId_ < levelDesign_[0].minionWaves[wave].minionMap.Count)
-            {
-                if (currentMinionCount_ < levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].count)
-                {
-                    int minionId = levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].id;
-                    GameObject minionGO = (GameObject)Instantiate(minionPrefabs[minionId].gameObject);
-                    Vector3 pos = levelLoader.GetPathPosition(0);
-                    minionGO.transform.position = pos;
-                    minions_.Add(minionGO);
-                    MinionProperties minionProp = minionGO.GetComponent<MinionProperties>();
-                    minionProp.currentTile = levelLoader.GetPathPoint(0);
-                    minionProp.pathIndex = 1;
-                    minionProp.walkPath = pathFinder.FindPath(minionProp.currentTile, levelLoader.GetPathPoint(minionProp.pathIndex));
-                    minionProp.walkPathIndex = 1;
-                    currentMinionCount_++;
-                }
-                else
-                {
-                    currentMinionCount_ = 0;
-                    currentMinionId_++;
-                    //skip this frame
-                }
-            }
-        }
-        tick_ += Time.deltaTime;
+            MinionProperties minionProp = minions_[i].GetComponent<MinionProperties>();
 
-        
+            if (minionProp.pathIndex == levelLoader.GetPathCount())
+                continue;
+
+            Vector3 pos = minions_[i].transform.position;
+            Vector3 dest = levelLoader.GetPathPosition(minionProp.pathIndex);
+            Vector3 diff = dest - pos;
+
+            if (diff.magnitude < minionThresholdPath)
+            {
+                minionProp.pathIndex += 1;
+                continue;
+            }
+
+            Vector3 moveVector;
+            Quaternion rotation;
+            Vector3 ahead;
+            Seek(pos, dest, minionThresholdPath, minionProp.speed, minionProp.rotationSpeed,
+                minions_[i].transform.rotation, out moveVector, out rotation, out ahead);
+            minionProp.ahead = ahead;
+            //Debug.Log("position : " + pos + "; ahead : " + ahead);
+
+            minions_[i].transform.rotation = rotation;
+            minions_[i].transform.position += moveVector;
+        }
+    }
+
+    private void UpdateMinionWithDefinedPaths()
+    {
         for (int i = 0; i < minions_.Count; ++i)
         {
 
@@ -135,14 +137,54 @@ public class MinionManager : MonoBehaviour {
 
             Vector3 moveVector;
             Quaternion rotation;
-            Seek(pos, dest, minionThresholdPath, minionProp.speed, minionProp.rotationSpeed, 
-                minions_[i].transform.rotation, out moveVector, out rotation);
-
-            Debug.Log(i + " rotation : " + rotation);
+            Vector3 ahead;
+            Seek(pos, dest, minionThresholdPath, minionProp.speed, minionProp.rotationSpeed,
+                minions_[i].transform.rotation, out moveVector, out rotation, out ahead);
+            minionProp.ahead = ahead;
+            Debug.Log("position " + pos);
 
             minions_[i].transform.rotation = rotation;
             minions_[i].transform.position += moveVector;
         }
+    }
+
+    private void UpdateMinions()
+    {
+        if (tick_ > timeToSpawn)
+        {
+            tick_ = 0;
+            int wave = GameManager.instance.wave;
+            if (currentMinionId_ < levelDesign_[0].minionWaves[wave].minionMap.Count)
+            {
+                if (currentMinionCount_ < levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].count)
+                {
+                    int minionId = levelDesign_[0].minionWaves[wave].minionMap[currentMinionId_].id;
+                    GameObject minionGO = (GameObject)Instantiate(minionPrefabs[minionId].gameObject);
+                    Vector3 pos = levelLoader.GetPathPosition(0);
+                    minionGO.transform.position = pos;
+                    minions_.Add(minionGO);
+                    MinionProperties minionProp = minionGO.GetComponent<MinionProperties>();
+                    minionProp.currentTile = levelLoader.GetPathPoint(0);
+                    minionProp.pathIndex = 1;
+                    minionProp.walkPath = pathFinder.FindPath(minionProp.currentTile, levelLoader.GetPathPoint(minionProp.pathIndex));
+                    minionProp.walkPathIndex = 1;
+                    minionProp.ahead = minionGO.transform.position;
+                    currentMinionCount_++;
+                }
+                else
+                {
+                    currentMinionCount_ = 0;
+                    currentMinionId_++;
+                    //skip this frame
+                }
+            }
+        }
+        tick_ += Time.deltaTime;
+
+        if (usePath)
+            UpdateMinionWithDefinedPaths();
+        else
+            UpdateMinionWithUndefinedPaths();
     }
 
     private Vector3 Truncate(Vector3 v, float max)
@@ -162,11 +204,13 @@ public class MinionManager : MonoBehaviour {
 
         for (int i = 0; i < obstacles.Count; ++i)
         {
+            Debug.Log("distance : " + Vector3.Distance(obstacles[i].position, ahead2));
             bool collision = Vector3.Distance(obstacles[i].position, ahead) <= obstacleRadius ||
                 Vector3.Distance(obstacles[i].position, ahead2) <= obstacleRadius;
 
             if (collision && (mostThreatening == null || Vector3.Distance(transform.position, obstacles[i].position) < Vector3.Distance(transform.position, mostThreatening.position)))
             {
+                Debug.Log("obstacle i : " + i);
                 mostThreatening = obstacles[i];
             }
         }
@@ -174,11 +218,14 @@ public class MinionManager : MonoBehaviour {
         return mostThreatening;
     }
 
-    private Vector3 CollisionAvoidance(Vector3 position, Vector3 moveVector)
+    private Vector3 CollisionAvoidance(Vector3 position, Vector3 moveVector, out Vector3 aheadOut)
     {
         float dynamic_length = moveVector.magnitude / maxVelocity;
         Vector3 ahead = position + moveVector.normalized * dynamic_length;
-        Vector3 ahead2 = ahead * 0.5f;
+        ahead.z = 0.0f;
+        Vector3 ahead2 = position + (moveVector.normalized * dynamic_length * 0.5f);
+
+        aheadOut = ahead;
 
         Transform mostThreatening = FindMostThreateningObstacle(ahead, ahead2);
         Vector3 avoidance = new Vector3(0, 0, 0);
@@ -190,7 +237,6 @@ public class MinionManager : MonoBehaviour {
 
             avoidance.Normalize();
             avoidance *= maxAvoidForce;
-            Debug.Log(avoidance);
         }
         else
         {
@@ -201,8 +247,10 @@ public class MinionManager : MonoBehaviour {
     }
 
     private void Seek(Vector3 position, Vector3 target, float minDistance, float moveSpeed, float rotationSpeed, Quaternion oldRotation,
-        out Vector3 moveVector, out Quaternion rotation)
+        out Vector3 moveVector, out Quaternion rotation, out Vector3 aheadOut)
     {
+        aheadOut = position;
+
         Vector3 direction = target - position;
 
         moveVector = direction;
@@ -213,7 +261,7 @@ public class MinionManager : MonoBehaviour {
 
             Truncate(moveVector, maxVelocity);
 
-            Vector3 avoidance = CollisionAvoidance(position, moveVector);
+            Vector3 avoidance = CollisionAvoidance(position, moveVector, out aheadOut);
 
             moveVector = (moveVector.normalized + avoidance) * moveSpeed * Time.deltaTime;
         }
@@ -336,4 +384,18 @@ public class MinionManager : MonoBehaviour {
         }
         UpdateMinions();
 	}
+
+    void OnDrawGizmos()
+    {
+        for (int i = 0; i < obstacles.Count; ++i)
+        {
+            Gizmos.DrawWireSphere(obstacles[i].position, obstacleRadius);
+        }
+
+        for (int i = 0; i < minions_.Count; ++i)
+        {
+            MinionProperties minionProp = minions_[i].GetComponent<MinionProperties>();
+            Gizmos.DrawLine(minions_[i].transform.position, minionProp.ahead);
+        }
+    }
 }
