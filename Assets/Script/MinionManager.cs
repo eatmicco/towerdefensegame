@@ -141,7 +141,7 @@ public class MinionManager : MonoBehaviour {
             Seek(pos, dest, minionThresholdPath, minionProp.speed, minionProp.rotationSpeed,
                 minions_[i].transform.rotation, out moveVector, out rotation, out ahead);
             minionProp.ahead = ahead;
-            Debug.Log("position " + pos);
+            //Debug.Log("position " + pos);
 
             minions_[i].transform.rotation = rotation;
             minions_[i].transform.position += moveVector;
@@ -204,13 +204,13 @@ public class MinionManager : MonoBehaviour {
 
         for (int i = 0; i < obstacles.Count; ++i)
         {
-            Debug.Log("distance : " + Vector3.Distance(obstacles[i].position, ahead2));
+            //Debug.Log("distance : " + Vector3.Distance(obstacles[i].position, ahead2));
             bool collision = Vector3.Distance(obstacles[i].position, ahead) <= obstacleRadius ||
                 Vector3.Distance(obstacles[i].position, ahead2) <= obstacleRadius;
 
             if (collision && (mostThreatening == null || Vector3.Distance(transform.position, obstacles[i].position) < Vector3.Distance(transform.position, mostThreatening.position)))
             {
-                Debug.Log("obstacle i : " + i);
+                //Debug.Log("obstacle i : " + i);
                 mostThreatening = obstacles[i];
             }
         }
@@ -382,7 +382,9 @@ public class MinionManager : MonoBehaviour {
         {
             return;
         }
+        Profiler.BeginSample("UpdateMinions");
         UpdateMinions();
+        Profiler.EndSample();
 	}
 
     void OnDrawGizmos()

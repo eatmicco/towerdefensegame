@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 public class TowerDragDrop : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler {
 
     public TowerManager towerManager;
+    public MinionManager minionManager;
     public GameObject towerPrefab;
     public int id;
 
@@ -33,6 +34,7 @@ public class TowerDragDrop : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         draggedGO_ = null;
         Vector3 worldPos = Camera.main.ScreenToWorldPoint(eventData.position);
         worldPos.z = 0;
-        towerManager.AddTower(id, worldPos);
+        GameObject tower = towerManager.AddTower(id, worldPos);
+        minionManager.obstacles.Add(tower.transform);
     }
 }

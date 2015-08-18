@@ -10,7 +10,7 @@ public class TowerManager : MonoBehaviour {
     public GameObject[] towerPrefabs;
     private List<GameObject> towers_ = new List<GameObject>();
 
-    public void AddTower(int id, Vector3 position)
+    public GameObject AddTower(int id, Vector3 position)
     {
         LevelLoader.TilePoint tile = levelLoader.GetTileFromPosition(position);
         if (tile.x != -1 && tile.y != -1)
@@ -24,8 +24,11 @@ public class TowerManager : MonoBehaviour {
                 towerProp.tickToShoot = 0;
                 towerProp.lockedMinion = null;
                 towers_.Add(tower);
+                return tower;
             }
         }
+
+        return null;
     }
 
     private void UpdateTowers()
