@@ -382,9 +382,9 @@ public class MinionManager : MonoBehaviour {
         {
             return;
         }
-        Profiler.BeginSample("UpdateMinions");
+        UnityEngine.Profiling.Profiler.BeginSample("UpdateMinions");
         UpdateMinions();
-        Profiler.EndSample();
+        UnityEngine.Profiling.Profiler.EndSample();
 	}
 
     void OnDrawGizmos()

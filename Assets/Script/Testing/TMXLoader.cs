@@ -1,9 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Xml.Linq;
 
-public class TMXLoader : MonoBehaviour {
-
+public class TMXLoader : MonoBehaviour
+{
     public int pixelPerUnit = 100;
     public TextAsset tmxTA;
     public GameObject[] tileSprites;
@@ -15,23 +17,27 @@ public class TMXLoader : MonoBehaviour {
 
     private void LoadTMXData(string textData)
     {
-        var parser = new XMLParser();
-        var node = parser.Parse(textData);
+	    var xDoc = XDocument.Parse(textData);
+
         int width, height, tileSize;
-        int.TryParse(node.GetValue("map>0>@width"), out width);
-        int.TryParse(node.GetValue("map>0>@height"), out height);
-        int.TryParse(node.GetValue("map>0>@tilewidth"), out tileSize);
+        var mapElement = xDoc.Element("map");
+
+		int.TryParse(mapElement?.Attribute("width")?.Value, out width);
+        int.TryParse(mapElement?.Attribute("height")?.Value, out height);
+        int.TryParse(mapElement?.Attribute("tilewidth")?.Value, out tileSize);
         Debug.Log("Width : " + width + "; Height : " + height);
-        tileX_ = width;
+
+		tileX_ = width;
         tileY_ = height;
         tileSize_ = (float)tileSize / (float)pixelPerUnit;
 
-        Debug.Log(node.GetValue("map>0>layer>0>data>0>tile>0>@gid"));
+        var layer = mapElement.Element("layer");
 
+        var tiles = layer.Descendants("tile").ToArray();
         for (int i = 0; i < (width * height); ++i)
         {
             int tile;
-            int.TryParse(node.GetValue("map>0>layer>0>data>0>tile>" + i + ">@gid"), out tile);
+            int.TryParse(tiles[i]?.Attribute("grid")?.Value, out tile);
             map.Add(tile);
         }
     }
@@ -72,10 +78,5 @@ public class TMXLoader : MonoBehaviour {
     {
         LoadTMXData(tmxTA.text);
         PopulateMap();
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
 	}
 }

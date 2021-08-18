@@ -9,6 +9,8 @@ public class GameManager : MonoBehaviour {
 
     public static GameManager instance;
 
+    private bool _showPath = false;
+
     public void IncrementWave()
     {
         wave++;
@@ -18,11 +20,6 @@ public class GameManager : MonoBehaviour {
     {
         instance = this;
     }
-
-	// Use this for initialization
-	void Start () {
-	
-	}
 	
 	// Update is called once per frame
 	void Update () {
@@ -38,9 +35,15 @@ public class GameManager : MonoBehaviour {
         {
             waveStarted = true;
         }
-        if (GUILayout.Button("Path"))
+
+        _showPath = GUILayout.Toggle(_showPath, _showPath ? "Hide Path" : "Show Path");
+		if (_showPath)
         {
             levelLoader.DrawWalkingPath();
         }
+		else
+		{
+			levelLoader.ClearWalkingPath();
+		}
     }
 }

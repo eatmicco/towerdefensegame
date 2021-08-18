@@ -1,6 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using UnityEditor.Experimental.GraphView;
+using Vector2 = UnityEngine.Vector2;
+
+// Reference: https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
 
 public class AStarPathfinder : MonoBehaviour {
 
@@ -12,46 +18,61 @@ public class AStarPathfinder : MonoBehaviour {
     //G = movement cost from start point to current point (1 per tile for adjacent, 1.5 per tile for diagonal)
     //H = estimated cost from current to end (use "Manhattan Length")
 
-    public class TileScore
+    public class TileNode
     {
         public LevelLoader.TilePoint tile;
         public int F;
         public int H;
         public int G;
+        public TileNode parent;
     }
-
-    //open set
-    private List<TileScore> openSet_ = new List<TileScore>();
-    private List<TileScore> closedSet_ = new List<TileScore>();
 
     public List<LevelLoader.TilePoint> FindPath(LevelLoader.TilePoint from, LevelLoader.TilePoint to)
     {
-        openSet_.Clear();
-        closedSet_.Clear();
+	    //open set
+	    List<TileNode> openSet = new List<TileNode>();
+	    List<TileNode> closedSet = new List<TileNode>();
+
+		openSet.Clear();
+        closedSet.Clear();
 
         tileX = levelLoader.GetTileX();
         tileY = levelLoader.GetTileY();
 
-        List<LevelLoader.TilePoint> resultPath = new List<LevelLoader.TilePoint>();
-
-        LevelLoader.TilePoint current = from;
-
-        TileScore tileScore = new TileScore();
-        tileScore.tile = from;
-        tileScore.G = 0;
-        tileScore.H = Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
-        tileScore.F = tileScore.G + tileScore.H;
-        closedSet_.Add(tileScore);
-        resultPath.Add(from);
+        TileNode currentNode = new TileNode();
+        currentNode.tile = from;
+        currentNode.G = 0;
+        currentNode.H = CalculateH(from, to);
+        currentNode.F = CalculateF(currentNode.G, currentNode.H);
+        openSet.Add(currentNode);
 
         bool arrive = false;
-        while (current != to)
-        //for (int k = 0; k < 20; ++k)
+        while (openSet.Any())
         {
-            //Debug.Log("K : " + k);
-            int G, H, F;
-            //list scores of adjacent tiles from current
-            for (int x = current.x - 1; x < current.x + 2; ++x)
+			// Find the lowest F score in openSet and put it to the closedSet, remove it from openSet
+			int lowest = 1000;
+			foreach (var node in openSet)
+			{
+				if (node.F < lowest)
+				{
+					lowest = node.F;
+					currentNode = node;
+				}
+			}
+
+			if (currentNode.tile.x == to.x && currentNode.tile.y == to.y)
+			{
+				arrive = true;
+				break;
+			}
+
+			closedSet.Add(currentNode);
+			openSet.Remove(currentNode);
+
+			LevelLoader.TilePoint current = currentNode.tile;
+
+			//list scores of adjacent tiles from current
+			for (int x = current.x - 1; x < current.x + 2; ++x)
             {
                 if (x < 0 || x > tileX-1) continue;
 
@@ -61,88 +82,72 @@ public class AStarPathfinder : MonoBehaviour {
 
                     if (y < 0 || y > tileY-1) continue;
 
-                    if (x == current.x - 1 && y == current.y - 1) continue;
-                    if (x == current.x + 1 && y == current.y - 1) continue;
-                    if (x == current.x - 1 && y == current.y + 1) continue;
-                    if (x == current.x + 1 && y == current.y + 1) continue;
+                    if (levelLoader.GetTileWalkable(x, y) != 1) continue;
 
-                    if (levelLoader.GetTileWalkable(x, y) == 1)
+                    if (closedSet.Any(n => n.tile.x == x && n.tile.y == y)) continue;
+
+                    var tileNode = openSet.FirstOrDefault(n => n.tile.x == x && n.tile.y == y);
+                    if (tileNode == null)
                     {
-                        G = (Mathf.Abs(from.x - x) + Mathf.Abs(from.y - y));
-                        int xd = Mathf.Abs(to.x - x);
-                        int yd = Mathf.Abs(to.y - y);
-                        if (xd > yd)
-                            H = 14 * yd + 10 * (xd - yd);
-                        else
-                            H = 14 * xd + 10 * (yd - xd);
-                        F = G + H;
-                        //add to open set
-                        tileScore = new TileScore();
-                        tileScore.tile = new LevelLoader.TilePoint(x, y);
-                        tileScore.G = G;
-                        tileScore.H = H;
-                        tileScore.F = F;
-                        openSet_.Add(tileScore);
+	                    tileNode = new TileNode();
+	                    tileNode.tile = new LevelLoader.TilePoint(x, y);
+	                    tileNode.parent = currentNode;
+	                    tileNode.G = CalculateG(currentNode.G, currentNode.tile, tileNode.tile);
+	                    tileNode.H = CalculateH(tileNode.tile, to);
+	                    tileNode.F = CalculateF(tileNode.G, tileNode.H);
+						openSet.Add(tileNode);
                     }
-                }
-            }
-
-            //find the lowest score and add it to closed set
-            int lowest = 1000;
-            int lowestId = -1;
-            for (int i = 0; i < openSet_.Count; ++i)
-            {
-                if (openSet_[i].F < lowest)
-                {
-                    //check if the tile is close to current tile
-                    if ((Mathf.Abs(openSet_[i].tile.x - current.x) == 1 &&
-                        Mathf.Abs(openSet_[i].tile.y - current.y) == 0) ||
-                        (Mathf.Abs(openSet_[i].tile.x - current.x) == 0 &&
-                        Mathf.Abs(openSet_[i].tile.y - current.y) == 1))
+                    else
                     {
-
-                        //check if the tile is already inside the closed set
-                        bool inside = false;
-                        for (int j = 0; j < closedSet_.Count; ++j)
-                        {
-                            if (closedSet_[j].tile.x == openSet_[i].tile.x &&
-                                closedSet_[j].tile.y == openSet_[i].tile.y)
-                            {
-                                inside = true;
-                                break;
-                            }
-                        }
-
-                        if (!inside)
-                        {
-                            lowest = openSet_[i].F;
-                            lowestId = i;
-                        }
-                    }
-                }
-                //check if the destination is in open set
-                if (openSet_[i].tile.x == to.x && openSet_[i].tile.y == to.y)
-                {
-                    arrive = true;
-                    lowestId = i;
-                    break;
+						var tempG = CalculateG(currentNode.G, currentNode.tile, tileNode.tile);
+						if (tempG < tileNode.G)
+						{
+							tileNode.parent = currentNode;
+							tileNode.G = tempG;
+							tileNode.H = CalculateH(tileNode.tile, to);
+							tileNode.F = CalculateF(tileNode.G, tileNode.H);
+						}
+					}
                 }
             }
-            if (lowestId != -1)
-            {
-                //add to closed set
-                closedSet_.Add(openSet_[lowestId]);
-                //set current value
-                current = openSet_[lowestId].tile;
-                //remove it from open set
-                openSet_.RemoveAt(lowestId);
-                //add to result path
-                resultPath.Add(current);
-            }
-
-            if (arrive) break;
         }
 
+        var resultPath = new List<LevelLoader.TilePoint>();
+		if (arrive)
+		{
+			resultPath.Add(currentNode.tile);
+	        while (currentNode.parent != null)
+	        {
+		        currentNode = currentNode.parent;
+				resultPath.Add(currentNode.tile);
+	        }
+	        resultPath.Reverse();
+		}
+
         return resultPath;
+    }
+
+    private int CalculateG(int originalG, LevelLoader.TilePoint oldPosition, LevelLoader.TilePoint currentPosition)
+    {
+	    if (currentPosition.x != oldPosition.x &&
+	        currentPosition.y != oldPosition.y)
+	    {
+		    return originalG + 14;
+	    }
+
+	    return originalG + 10;
+    }
+
+    private int CalculateH(LevelLoader.TilePoint currentPosition, LevelLoader.TilePoint destinationPosition)
+    {
+		// Manhattan distance
+		var xDiff = Mathf.Abs(destinationPosition.x - currentPosition.x);
+		var yDiff = Mathf.Abs(destinationPosition.y - currentPosition.y);
+		return (int)Mathf.Sqrt(xDiff * xDiff + yDiff * yDiff) * 10;
+	}
+
+    private int CalculateF(int G, int H)
+    {
+	    return G + H;
     }
 }

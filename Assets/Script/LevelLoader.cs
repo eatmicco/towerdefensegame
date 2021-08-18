@@ -203,13 +203,9 @@ public class LevelLoader : MonoBehaviour {
 
     public void DrawWalkingPath()
     {
-        for (int i = 0; i < walkingPath_.Count; ++i)
-        {
-            Destroy(walkingPath_[i]);
-        }
-        walkingPath_.Clear();
+	    ClearWalkingPath();
 
-        for (int i = 0; i < GetPathCount()-1; ++i)
+		for (int i = 0; i < GetPathCount()-1; ++i)
         {
             TilePoint from = GetPathPoint(i);
             TilePoint to = GetPathPoint(i + 1);
@@ -226,6 +222,15 @@ public class LevelLoader : MonoBehaviour {
             }
         }
     }
+
+    public void ClearWalkingPath()
+    {
+	    for (int i = 0; i < walkingPath_.Count; ++i)
+	    {
+		    Destroy(walkingPath_[i]);
+	    }
+	    walkingPath_.Clear();
+	}
 
     // Use this for initialization
     void Start()
